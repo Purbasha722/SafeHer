@@ -1,0 +1,129 @@
+import java.util.*;
+
+class User {
+    private String name;
+    private List<String> emergencyContacts;
+
+    public User(String name, List<String> contacts) {
+        this.name = name;
+        this.emergencyContacts = contacts;
+    }
+
+    public String getName() { 
+        return name;
+        }
+    public List<String> getContacts() { 
+        return emergencyContacts; 
+        }
+}
+
+class LocationService {
+    public String getLocation() {
+        return "http://googleusercontent.com/maps.google.com/loc?lat=23.81&lon=90.41";
+    }
+}
+
+abstract class Alert {
+    abstract void send(String number, String message);
+}
+
+class SMSAlert extends Alert {
+    @Override
+    void send(String number, String message) {
+        System.out.println("📩 SMS sent to " + number);
+        System.out.println("   [Content]: " + message);
+    }
+}
+
+class CallAlert extends Alert {
+    @Override
+    void send(String number, String message) {
+        System.out.println("📞 Calling " + number + "...");
+    }
+}
+
+class EmergencyManager {
+    private LocationService locationService = new LocationService();
+    private Alert smsAlert;
+    private Alert callAlert;
+
+    public EmergencyManager(Alert smsAlert, Alert callAlert) {
+        this.smsAlert = smsAlert;
+        this.callAlert = callAlert;
+    }
+
+    public void triggerEmergency(User user) {
+        System.out.println("\n==================================");
+        System.out.println("🚨 EMERGENCY ACTIVATED 🚨");
+        System.out.println("==================================");
+
+        String location = locationService.getLocation();
+        String message = "HELP! " + user.getName() + " is in danger!\n📍 Location: " + location;
+
+        for (String contact : user.getContacts()) {
+            System.out.println("\n--- Notifying Contact: " + contact + " ---");
+            
+            smsAlert.send(contact, message);
+
+            System.out.println("⏱ Waiting 5 seconds before calling...");
+            try { Thread.sleep(5000); } catch (Exception e) {}
+
+            callAlert.send(contact, "");
+        }
+
+        System.out.println("\n✅ All alerts sent successfully!");
+        System.out.println("==================================\n");
+    }
+}
+
+class TriggerService {
+    public void waitForTrigger(EmergencyManager manager, User user) {
+        Scanner sc = new Scanner(System.in);
+        int powerCount = 0;
+        long powerStartTime = 0;
+        final int TIME_LIMIT = 3000;
+
+        System.out.println("\n🟢 SAFETY SYSTEM ONLINE");
+        System.out.println("🔘 Press 'P' 3 times quickly to trigger emergency");
+        System.out.println("----------------------------------------------");
+
+        while (true) {
+            System.out.print("👉 Input: ");
+            String input = sc.nextLine().trim().toUpperCase();
+            long now = System.currentTimeMillis();
+
+            if (input.equals("P")) {
+                if (powerCount > 0 && (now - powerStartTime) > TIME_LIMIT) {
+                    System.out.println("⏱ Too slow! Restarting sequence...");
+                    powerCount = 0;
+                }
+                
+                if (powerCount == 0) powerStartTime = now;
+                
+                powerCount++;
+                System.out.println("✔ Power Press Count: " + powerCount);
+
+                if (powerCount == 3) {
+                    System.out.println("\n🚨 EMERGENCY TRIGGER DETECTED!");
+                    manager.triggerEmergency(user);
+                    break;
+                }
+            } else {
+                System.out.println("❌ Invalid key! Please press 'P' only.");
+            }
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List<String> contacts = new ArrayList<>(Arrays.asList("01711111111", "01822222222"));
+        User user = new User("Ayesha", contacts);
+
+        EmergencyManager manager = new EmergencyManager(new SMSAlert(), new CallAlert());
+        TriggerService trigger = new TriggerService();
+
+        trigger.waitForTrigger(manager, user);
+    }
+}
+
